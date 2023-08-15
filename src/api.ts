@@ -1,13 +1,42 @@
 import express from 'express';
 import cors from 'cors';
 
-export const app = express();
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(cors({ origin: true }));
 
-app.use(express.json());
-app.use(express.raw({ type: 'application/vnd.custom-type' }));
-app.use(express.text({ type: 'text/html' }));
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // Upload files to the 'uploads' directory
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage });
+
+// Serve static files
+app.use(express.static('public'));
+
+// API endpoint to handle file uploads
+app.post('/upload', upload.array('uploads', 10), (req, res) => {
+    try {
+        // Handle uploaded files here (e.g., save to database, process, etc.)
+        console.log('Uploaded files:', req.files);
+
+        // Send a success response
+        res.status(200).json({ message: 'Files uploaded successfully' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'An error occurred while processing the files' });
+    }
+});
 
 // Healthcheck endpoint
 app.get('/', (req, res) => {
